@@ -1,0 +1,21 @@
+FTT Format stdin to stdout with selected formatter.
+
+	FromTextTo
+	FormatToText
+	FormatThisText
+	FormatToTerminal
+	FormaTTer
+	ForTheText!
+
+Build and run:
+
+	$ ./build
+	$ ./ftt -h
+	$ ./ftt gph <stdin
+
+Formatters:
+
+	none	Default, only wrap lines according to -w and -t.
+	gph	Gopher submenu
+	gmi	Gemini text WIP
+	... more to come, maybe?  I just need gph at the moment ('-')
