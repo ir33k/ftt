@@ -15,8 +15,9 @@ fmt_none(char *str, size_t sz, int wrap, int tab)
 	for (w=0, i=0; i<sz; i++) {
 		putchar(str[i]);
 		switch (str[i]) {
-		case '\n':
 		case '\r':
+			continue;
+		case '\n':
 		case '\0':
 			w = 0;
 			continue;
