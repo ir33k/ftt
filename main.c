@@ -7,6 +7,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "fmt/none.h"
+#include "fmt/gph.h"
+#include "fmt/gmi.h"
+
 #define WRAP	72	/* Default value of bytes for wrapping lines */
 #define TAB	8	/* Default tab width */
 
@@ -55,135 +59,6 @@ get_fmt(char *name)
 	return NONE;
 }
 
-static char *
-gph_item(char item)
-{
-	/* NOTE(irek): Having common item strings with the same length
-	 * produce nicly aligned output. */
-	switch (item) {
-	case '.': return "EOF";         /* End Of gopher submenu File*/
-	/* Canonical */
-	case '0': return "TXT" ;        /* Text file */
-	case '1': return "GPH";         /* Gopher submenu */
-	case '2': return "CSO";         /* CSO protocol */
-	case '3': return "ERR";         /* Error code returned by server */
-	case '4': return "BINHEX";      /* BinHex-encoded file (for Macintosh) */
-	case '5': return "DOS";         /* DOS file */
-	case '6': return "UUENCODED";   /* uuencoded file */
-	case '7': return "SEARCH";      /* Gopher full-text search */
-	case '8': return "TELNET";      /* Telnet */
-	case '9': return "BIN";         /* Binary file */
-	case '+': return "MIRROR";      /* Mirror or alternate server */
-	case 'g': return "GIF";         /* GIF file */
-	case 'I': return "IMG";         /* Image file */
-	case 'T': return "TN3270";      /* Telnet 3270 */
-	/* Gopher+ */
-	case ':': return "BMP";         /* Bitmap image */
-	case ';': return "MOV";         /* Movie/video file */
-	case '<': return "MP3";         /* Sound file */
-	/* Non-canonical */
-	case 'd': return "DOC";         /* Doc. Seen used alongside PDF's and .DOC's */
-	case 'h': return "WEB";         /* HTML file */
-	case 'p': return "PNG";         /* Image file "(especially the png format)" */
-	case 'r': return "RTF";         /* Document rtf file ("rich text format") */
-	case 's': return "WAV";         /* Sound file (especially the WAV format) */
-	case 'P': return "PDF";         /* document pdf file */
-	case 'X': return "XML";         /* document xml file */
-	case 'i': return "   ";         /* Informational message, widely used */
-	}
-	return "UNKNOWN";
-}
-
-static char *
-gph_uri(char *bp)
-{
-	static char item, host[1024], port[16], path[2048], buf[4096] = "";
-	size_t sz;
-	item = *bp;
-	if (item == 'h') {	/* Special case for HTML web link */
-		bp += strcspn(bp, "\t\n\0") + 5;
-		sz = strcspn(bp, "\t\n\0") - 1;
-		strncpy(buf, bp, sz);
-		buf[sz] = 0;
-		return buf;
-	}
-	bp += strcspn(bp, "\t\n\0") + 1;
-	snprintf(path, sizeof(path), "%.*s", (int)(sz = strcspn(bp, "\t\n")), bp);
-	bp += sz + 1;
-	snprintf(host, sizeof(host), "%.*s", (int)(sz = strcspn(bp, "\t\n")), bp);
-	bp += sz + 1;
-	snprintf(port, sizeof(port), "%.*s", (int)strspn(bp, "0123456789"), bp);
-	snprintf(buf, sizeof(buf), "gopher://%s:%s/%c%s", host, port, item, path);
-	return buf;
-}
-
-/* Only wrap lines according to WRAP line width and TAB width. */
-static void
-fmt_none(char *str, size_t sz, int wrap, int tab)
-{
-	size_t i;
-	int w;
-	assert(str);
-	assert(sz > 0);
-	for (w=0, i=0; i<sz; i++) {
-		putchar(str[i]);
-		switch (str[i]) {
-		case '\n':
-		case '\r':
-		case '\0':
-			w = 0;
-			continue;
-		case '\t':
-			w += tab - (w % tab);
-			break;
-		default:
-			w++;
-		}
-		if (w >= wrap) {
-			w = 0;
-			/* Put new line on wrap only if it is not
-			 * followed by another new line char. */
-			if (i+1>=sz || str[i+1] != '\n') {
-				putchar('\n');
-			}
-			/* Trime left after wrapping. */
-			while (i+1 < sz &&
-			       (str[i+1] == ' ' || str[i+1] == '\t')) {
-				i++;
-			}
-		}
-	}
-}
-
-/* Simple Gopher submenu formatter. */
-static void
-fmt_gph(char *str)
-{
-	size_t len;
-	char *bp, item;
-	int i;                  /* Menu item index */
-	assert(str);
-	for (i=0, bp=str; *bp && *bp != '.'; bp += strcspn(bp, "\n\0") + 1) {
-		item = *bp;
-		printf("%s ", gph_item(item));
-		bp++;
-		len = strcspn(bp, "\t\n\0");
-		printf("%.*s", (int)len, bp);
-		if (item != 'i') {
-			printf(" [%d]", ++i);
-		}
-		putchar('\n');
-	}
-	putchar('\n');
-	/* Print links */
-	for (i=0, bp=str; *bp && *bp != '.'; bp += strcspn(bp, "\n\0") + 1) {
-		if (*bp == 'i') {
-			continue;
-		}
-		printf("[%d] %s\n", ++i, gph_uri(bp));
-	}
-}
-
 static void
 run(enum fmt fmt, int wrap, int tab)
 {
@@ -201,8 +76,7 @@ run(enum fmt fmt, int wrap, int tab)
 		fmt_gph(str);
 		break;
 	case GMI:
-		/* TODO(irek): Implement. */
-		assert(0 && "Not implemented");
+		fmt_gmi(str, sz, wrap, tab);
 		break;
 	}
 }
